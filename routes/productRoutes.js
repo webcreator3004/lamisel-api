@@ -5,12 +5,11 @@ const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
-
-
 // ================= CREATE PRODUCT =================
 router.post('/', auth, upload.single('productImage'), async (req, res) => {
   try {
-    const { productName, series, collection } = req.body;
+    // UPDATED: Destructure using 'collectionName' to match your Schema
+    const { productName, series, collectionName } = req.body;
 
     let imageUrl = null;
 
@@ -22,12 +21,11 @@ router.post('/', auth, upload.single('productImage'), async (req, res) => {
     const product = new Product({
       productName,
       series,
-      collection,
+      collectionName, // UPDATED: Key matches the new field in Product.js
       productImage: imageUrl
     });
 
     await product.save();
-
     res.json(product);
 
   } catch (err) {
@@ -35,37 +33,49 @@ router.post('/', auth, upload.single('productImage'), async (req, res) => {
   }
 });
 
-
 // ================= GET ALL PRODUCTS =================
 router.get('/', async (req, res) => {
-  const products = await Product.find();
-  res.json(products);
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
 
 // ================= GET SINGLE PRODUCT =================
 router.get('/:id', async (req, res) => {
-  const product = await Product.findById(req.params.id);
-  res.json(product);
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
 
 // ================= UPDATE PRODUCT =================
 router.put('/:id', auth, async (req, res) => {
-  const product = await Product.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
-
-  res.json(product);
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
 
 // ================= DELETE PRODUCT =================
 router.delete('/:id', auth, async (req, res) => {
-  await Product.findByIdAndDelete(req.params.id);
-  res.json({ message: "Product deleted" });
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: "Product deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
