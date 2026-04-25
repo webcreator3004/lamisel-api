@@ -6,12 +6,12 @@ const productSchema = new mongoose.Schema({
   productName: { type: String, required: true },
   productImage: { type: String },
   series: { type: String },
-  // Changed from 'collection' to 'category' or 'collectionName'
   collectionName: { type: String }
 }, { timestamps: true });
 
-// auto increment logic remains the same
-productSchema.pre('save', async function (next) {
+// MODERN FIX: Remove 'next' from the arguments and use async/await properly
+productSchema.pre('save', async function () {
+  // Only run this logic if it's a brand-new document
   if (this.isNew) {
     try {
       const counter = await Counter.findOneAndUpdate(
@@ -19,13 +19,13 @@ productSchema.pre('save', async function (next) {
         { $inc: { seq: 1 } },
         { new: true, upsert: true }
       );
+      
       this.productId = counter.seq;
-      next(); // Don't forget next() to continue the save process
+      // In async hooks, you don't need to call next() manually
     } catch (error) {
-      next(error);
+      // Re-throwing the error will stop the save process automatically
+      throw error; 
     }
-  } else {
-    next();
   }
 });
 
